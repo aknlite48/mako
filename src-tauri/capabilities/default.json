@@ -1,0 +1,64 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "Capabilities for all Mako windows",
+	"windows": ["main", "mako-*"],
+	"permissions": [
+		"core:default",
+		"core:window:allow-set-title",
+		"core:window:allow-start-dragging",
+		"core:webview:allow-create-webview-window",
+		"dialog:allow-open",
+		"dialog:allow-ask",
+		{
+			"identifier": "fs:allow-read-text-file",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-write-text-file",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-mkdir",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-read-dir",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-stat",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-exists",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-watch",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "fs:allow-unwatch",
+			"allow": [{ "path": "**" }]
+		},
+		{
+			"identifier": "opener:allow-open-path",
+			"allow": [
+				{
+					"path": "**"
+				}
+			]
+		},
+		{
+			"identifier": "shell:allow-execute",
+			"allow": [
+				{
+					"name": "git",
+					"cmd": "git",
+					"args": true
+				}
+			]
+		}
+	]
+}

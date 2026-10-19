@@ -1,0 +1,29 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+	<!-- Mako app icon: deep-ocean rounded square (macOS Big Sur geometry:
+	     824x824 squircle centered on a 1024 canvas), a raked-back mako fin
+	     breaking the waterline, and its reflection below. -->
+	<defs>
+		<linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#14608f"/>
+			<stop offset="0.55" stop-color="#0a3a5e"/>
+			<stop offset="1" stop-color="#061e33"/>
+		</linearGradient>
+		<linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#ffffff"/>
+			<stop offset="1" stop-color="#cfe6f7"/>
+		</linearGradient>
+	</defs>
+
+	<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#ocean)"/>
+
+	<!-- Waterline (broken around the fin) -->
+	<line x1="236" y1="640" x2="318" y2="640" stroke="#ffffff" stroke-opacity="0.32" stroke-width="22" stroke-linecap="round"/>
+	<line x1="714" y1="640" x2="796" y2="640" stroke="#ffffff" stroke-opacity="0.32" stroke-width="22" stroke-linecap="round"/>
+
+	<!-- Fin: steep convex leading edge, concave raked-back trailing edge -->
+	<path d="M 356 640 C 396 478, 496 368, 618 338 C 588 450, 598 558, 678 640 Z" fill="url(#fin)"/>
+
+	<!-- Reflection: fin mirrored about the waterline, squashed and faint -->
+	<path d="M 356 640 C 396 478, 496 368, 618 338 C 588 450, 598 558, 678 640 Z"
+		transform="translate(0, 640) scale(1, -0.32) translate(0, -640)" fill="#ffffff" fill-opacity="0.12"/>
+</svg>
