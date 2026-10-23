@@ -34,6 +34,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      # tauri::generate_context! requires the frontendDist dir (../dist) to
+      # exist at compile time; a stub is enough for clippy/check.
+      - name: Stub frontend dist
+        run: mkdir -p dist && touch dist/index.html
       - name: Format
         run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
       - name: Clippy
