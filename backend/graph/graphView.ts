@@ -75,6 +75,20 @@ const STATUS_COLORS: { [status: string]: string } = {
 	U: 'var(--vscode-gitDecoration-untrackedResourceForeground)'
 };
 
+/**
+ * 64-bit content hash (FNV-1a + djb2) of the serialized load data. A
+ * collision would merely skip one re-render until the data changes again.
+ */
+function dataSignature(json: string): string {
+	let h1 = 0x811c9dc5, h2 = 5381;
+	for (let i = 0; i < json.length; i++) {
+		const c = json.charCodeAt(i);
+		h1 = Math.imul(h1 ^ c, 0x01000193);
+		h2 = Math.imul(h2, 33) ^ c;
+	}
+	return h1 + ':' + h2;
+}
+
 function el(tag: string, className?: string, text?: string): HTMLElement {
 	const elem = document.createElement(tag);
 	if (className !== undefined) elem.className = className;
@@ -116,9 +130,10 @@ export function createGraphView(opts: GraphViewOptions): GraphView {
 	// --- State ---
 	let disposed = false;
 	let loadSeq = 0;
-	// Signature of the last loaded data: auto-refreshes with identical git
-	// state skip the re-render (otherwise an expanded details panel would
-	// visibly flicker on every background refresh).
+	// Signature (64-bit hash) of the last loaded data: auto-refreshes with
+	// identical git state skip the re-render (otherwise an expanded details
+	// panel would visibly flicker on every background refresh). A hash keeps
+	// memory flat — no retained JSON snapshot of the commit list.
 	let lastSignature = '';
 	let repoIndex = 0; // Active entry in opts.repos (the Repo dropdown)
 	const repoPath = () => opts.repos[repoIndex].path;
@@ -393,7 +408,7 @@ export function createGraphView(opts: GraphViewOptions): GraphView {
 
 		// View options are part of the signature so user-driven refreshes
 		// (repo/branch/remotes changes) always render even with equal data.
-		const signature = JSON.stringify([repoPath(), branchFilter, showRemotes, commitCount, refsData, stashes, unc, commits]);
+		const signature = dataSignature(JSON.stringify([repoPath(), branchFilter, showRemotes, commitCount, refsData, stashes, unc, commits]));
 		if (signature === lastSignature) return false;
 		lastSignature = signature;
 
