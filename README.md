@@ -20,7 +20,19 @@ Mako is a lean, VS Code-style desktop editor built on [Tauri](https://tauri.app)
 
 The Git Graph is deliberately **read-only**: it visualizes history but never runs a mutating git command. Use your own terminal (there's one built in) for commits, checkouts, merges, and pushes.
 
-## Install / Build
+## Install
+
+Download the `.dmg` from the [latest release](https://github.com/aknlite48/mako/releases) and drag Mako to Applications.
+
+The app is not code-signed or notarized (no Apple Developer certificate), so on first launch macOS will claim it is "damaged". It isn't — that's Gatekeeper quarantining an unsigned download. Clear it once with:
+
+```sh
+xattr -cr /Applications/Mako.app
+```
+
+then open the app normally.
+
+## Build from source
 
 Prerequisites:
 
