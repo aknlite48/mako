@@ -1,6 +1,7 @@
 /**
- * Explorer git decorations: parse `git status --porcelain -z -uall
- * --ignored=traditional` into a map of absolute path → { letter, color },
+ * Explorer git decorations: parse `git status --porcelain -z` output
+ * (per-file untracked entries + directory-collapsed ignored entries, see
+ * gitCli.getStatusPorcelain) into a map of absolute path → { letter, color },
  * matching VS Code's git extension (Resource.getStatusLetter/getStatusColor):
  * coloured filenames with a right-aligned status letter, colours propagated
  * to ancestor directories (except for deletions and ignored entries, which

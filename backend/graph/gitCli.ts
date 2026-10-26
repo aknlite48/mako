@@ -193,8 +193,23 @@ export async function getStashes(repo: string): Promise<GitStash[]> {
 }
 
 /** Raw `git status --porcelain -z` output including ignored entries (for the explorer decorations). */
-export function getStatusPorcelain(repo: string): Promise<string> {
-	return run(repo, ['-c', 'core.quotePath=false', 'status', '--porcelain', '-z', '-uall', '--ignored=traditional']);
+export async function getStatusPorcelain(repo: string): Promise<string> {
+	// Two calls, not one: combining -uall with --ignored=traditional makes git
+	// list every individual file INSIDE ignored directories (tens of MB in
+	// node_modules-heavy repos). Untracked entries are fetched per-file, then
+	// ignored entries separately with directories collapsed.
+	const changes = await run(repo, ['-c', 'core.quotePath=false', 'status', '--porcelain', '-z', '-uall']);
+	const ignored = await run(repo, [
+		'-c',
+		'core.quotePath=false',
+		'status',
+		'--porcelain',
+		'-z',
+		'-unormal',
+		'--ignored=traditional'
+	]);
+	const ignoredOnly = ignored.split('\0').filter((record) => record.startsWith('!!'));
+	return ignoredOnly.length === 0 ? changes : changes + ignoredOnly.join('\0') + '\0';
 }
 
 /**
