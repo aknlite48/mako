@@ -1,6 +1,6 @@
 [package]
 name = "mako"
-version = "0.1.0"
+version = "0.2.0"
 description = "A low-memory code editor with Git Graph built in"
 license = "MIT"
 repository = "https://github.com/aknlite48/mako"

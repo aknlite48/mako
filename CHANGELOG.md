@@ -6,6 +6,22 @@ All notable changes to Mako are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-26
+
+### Changed
+
+- Files now open in a single reused editor tab (a tab with unsaved changes
+  is never replaced); diff, revision and Git Graph tabs are unaffected
+- Git commands run through a dedicated Rust command and terminal output
+  streams over a raw IPC channel, eliminating JSON number-array
+  serialization — substantially lower transient memory usage
+
+### Fixed
+
+- Explorer git decorations no longer make git list every file inside
+  ignored directories (multi-MB status output in node_modules-heavy
+  repositories caused brief memory spikes)
+
 ## [0.1.0] - 2026-10-18
 
 Initial release.
