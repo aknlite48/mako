@@ -24,12 +24,18 @@ interface Tab {
 	readonly key: string | null;
 	readonly elem: HTMLElement;
 	dirty: boolean;
+	/** Monotonic activation stamp (for least-recently-used eviction). */
+	lastUse: number;
 }
+
+/** At most this many file tabs — opening more replaces the LRU clean one. */
+const MAX_FILE_TABS = 1;
 
 let tabs: Tab[] = [];
 let activeTab: Tab | null = null;
 let tabbarElem: HTMLElement | null = null;
 let nextTabId = 1;
+let useCounter = 0;
 let graphProvider: ((tabId: number) => Promise<void>) | null = null;
 
 function createTab(kind: Tab['kind'], key: string | null, label: string, tooltip?: string): Tab {
@@ -56,7 +62,7 @@ function createTab(kind: Tab['kind'], key: string | null, label: string, tooltip
 	labelElem.textContent = label;
 	elem.appendChild(labelElem);
 
-	const tab: Tab = { id: nextTabId++, kind: kind, key: key, elem: elem, dirty: false };
+	const tab: Tab = { id: nextTabId++, kind: kind, key: key, elem: elem, dirty: false, lastUse: 0 };
 
 	const closeElem = document.createElement('span');
 	closeElem.className = 'ggdTabClose';
@@ -75,6 +81,7 @@ function createTab(kind: Tab['kind'], key: string | null, label: string, tooltip
 }
 
 function activateTab(tab: Tab) {
+	tab.lastUse = ++useCounter;
 	if (activeTab === tab) return;
 	if (activeTab !== null) activeTab.elem.classList.remove('active');
 	activeTab = tab;
@@ -118,8 +125,37 @@ export async function openFileTab(absPath: string): Promise<void> {
 		activateTab(existing);
 		return;
 	}
+
+	// Cap on file tabs: opening another file replaces the least recently
+	// used CLEAN file tab in place. Dirty tabs are never evicted (unsaved
+	// work always keeps its tab), so with every file tab dirty the cap is
+	// exceeded rather than losing changes.
+	let insertIndex = -1;
+	let insertBeforeElem: Element | null = null;
+	const fileTabs = tabs.filter((tab) => tab.kind === 'file');
+	if (fileTabs.length >= MAX_FILE_TABS) {
+		let victim: Tab | null = null;
+		for (const tab of fileTabs) {
+			if (!tab.dirty && (victim === null || tab.lastUse < victim.lastUse)) victim = tab;
+		}
+		if (victim !== null) {
+			closeEditorTab(victim.id);
+			insertIndex = tabs.indexOf(victim);
+			insertBeforeElem = victim.elem.nextElementSibling;
+			tabs.splice(insertIndex, 1);
+			victim.elem.remove();
+			if (activeTab === victim) activeTab = null;
+		}
+	}
+
 	const label = absPath.substring(absPath.lastIndexOf('/') + 1);
 	const tab = createTab('file', absPath, label);
+	if (insertIndex > -1) {
+		// Take over the evicted tab's spot (createTab appended at the end)
+		if (insertBeforeElem !== null) tabbarElem!.insertBefore(tab.elem, insertBeforeElem);
+		tabs.pop();
+		tabs.splice(insertIndex, 0, tab);
+	}
 	await openFileInEditor(tab.id, absPath);
 	activateTab(tab);
 }
