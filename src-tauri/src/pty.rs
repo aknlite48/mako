@@ -1,13 +1,17 @@
 //! Integrated-terminal PTY backend: spawns the user's shell on a real
-//! pseudo-terminal and streams its output to the webview as events.
+//! pseudo-terminal and streams its output to the webview.
 //!
-//! Events (per terminal id): `pty-data-<id>` carries raw output bytes,
-//! `pty-exit-<id>` fires once when the shell exits (or the PTY is closed).
+//! Output goes over a per-terminal IPC `Channel` as a raw byte payload — an
+//! event would serialize every chunk as a JSON number array (4-5x the bytes
+//! in transient webview allocations) and broadcast it to every window. The
+//! `pty-exit-<id>` event fires once when the shell exits (or the PTY is
+//! closed).
 
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Mutex;
+use tauri::ipc::{Channel, InvokeResponseBody};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 pub struct PtySession {
@@ -92,6 +96,7 @@ fn write_zsh_integration() -> std::io::Result<std::path::PathBuf> {
 /// Spawn the user's default shell (login shell, like VS Code on macOS) in a
 /// new PTY. Returns the shell's basename for display (e.g. "zsh").
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn pty_spawn(
 	app: AppHandle,
 	window: Window,
@@ -100,6 +105,7 @@ pub fn pty_spawn(
 	cols: u16,
 	rows: u16,
 	cwd: String,
+	on_data: Channel<InvokeResponseBody>,
 ) -> Result<String, String> {
 	let pty_system = native_pty_system();
 	let pair = pty_system.openpty(size(cols, rows)).map_err(|e| e.to_string())?;
@@ -148,7 +154,7 @@ pub fn pty_spawn(
 			match reader.read(&mut buf) {
 				Ok(0) | Err(_) => break,
 				Ok(n) => {
-					let _ = app.emit(&format!("pty-data-{}", id), buf[..n].to_vec());
+					let _ = on_data.send(InvokeResponseBody::Raw(buf[..n].to_vec()));
 				}
 			}
 		}

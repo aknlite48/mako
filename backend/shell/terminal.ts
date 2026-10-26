@@ -4,8 +4,9 @@
  * toggled with Ctrl+` or the title-bar terminal button.
  *
  * Each terminal is an xterm.js instance attached to a real PTY provided by
- * the Rust side (pty_spawn/pty_write/pty_resize/pty_kill + per-id
- * pty-data-<id> / pty-exit-<id> events). Terminals are arranged in groups;
+ * the Rust side (pty_spawn/pty_write/pty_resize/pty_kill; output streams
+ * over a raw-payload IPC channel, exit via a pty-exit-<id> event).
+ * Terminals are arranged in groups;
  * splitting adds a pane to the active group (side by side with a draggable
  * sash, like VS Code), and the tabs list on the right (shown with 2+
  * terminals) switches between them. Design values (35px title row, 11px
@@ -13,7 +14,7 @@
  * 20px xterm gutter, codicon toolbar) follow VS Code's terminal panel.
  */
 
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
@@ -629,11 +630,15 @@ export function initTerminalPanel(cwd: string): { toggle: () => void } {
 		});
 
 		const track = (p: Promise<UnlistenFn>) => p.then((u) => { pane.disposed ? u() : pane.unlisteners.push(u); }).catch(() => { });
-		track(listen<number[]>('pty-data-' + id, (e) => { if (!pane.disposed) term.write(new Uint8Array(e.payload)); }));
 		track(listen('pty-exit-' + id, () => removePane(pane, true)));
 
+		// Output arrives over a raw-payload IPC channel: an ArrayBuffer per
+		// chunk — never a JSON number array — and only in this window.
+		const onData = new Channel<ArrayBuffer>();
+		onData.onmessage = (data) => { if (!pane.disposed) term.write(new Uint8Array(data)); };
+
 		if (visible && group.el.classList.contains('active')) fit.fit();
-		invoke<string>('pty_spawn', { id: id, cols: term.cols, rows: term.rows, cwd: cwd })
+		invoke<string>('pty_spawn', { id: id, cols: term.cols, rows: term.rows, cwd: cwd, onData: onData })
 			.then((name) => { pane.name = name; renderList(); })
 			.catch((e) => { term.write('Failed to start the shell: ' + String(e) + '\r\n'); });
 
