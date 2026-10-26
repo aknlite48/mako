@@ -184,15 +184,17 @@ function launchApp(folder: string, statusRepo: string | null, repoPaths: string[
 	let decorationsTimer: number | null = null;
 	const refreshDecorations = () => {
 		if (repoPaths.length === 0 || decorationsTimer !== null) return;
-		decorationsTimer = window.setTimeout(() => {
+		decorationsTimer = window.setTimeout(async () => {
 			decorationsTimer = null;
-			Promise.all(repoPaths.map((repo) =>
-				fetchDecorations(repo).catch(() => new Map<string, TreeDecoration>())
-			)).then((maps) => {
-				const merged = new Map<string, TreeDecoration>();
-				for (const map of maps) map.forEach((decoration, path) => merged.set(path, decoration));
-				tree.setDecorations(merged);
-			}).catch(() => { });
+			// Sequential, not Promise.all: one `git status` process (and one
+			// stdout buffer) at a time keeps the memory/CPU burst flat.
+			const merged = new Map<string, TreeDecoration>();
+			for (const repo of repoPaths) {
+				try {
+					(await fetchDecorations(repo)).forEach((decoration, path) => merged.set(path, decoration));
+				} catch (_) { }
+			}
+			tree.setDecorations(merged);
 		}, 300);
 	};
 	refreshDecorations();

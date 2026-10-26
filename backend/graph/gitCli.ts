@@ -8,9 +8,7 @@
  * records, so arbitrary commit messages can't break parsing.
  */
 
-import { spawnGitRaw } from '../spawn';
-
-const decoder = new TextDecoder();
+import { spawnGit } from '../spawn';
 
 const FIELD = '\x1f';
 const RECORD = '\x1e';
@@ -71,16 +69,16 @@ export interface GitCommitDetails {
 	body: string;
 }
 
-/** Run git, resolving with decoded stdout, rejecting on a non-zero exit. */
+/** Run git, resolving with stdout, rejecting on a non-zero exit. */
 async function run(repo: string, args: string[]): Promise<string> {
-	const [status, stdout, stderr] = await spawnGitRaw(args, repo);
+	const [status, stdout, stderr] = await spawnGit(args, repo);
 	if (status.code !== 0) {
 		const detail = stderr.trim() !== '' ? stderr.trim()
 			: status.error !== null ? status.error.message
 				: 'git exited with code ' + status.code;
 		throw new Error(detail);
 	}
-	return decoder.decode(stdout);
+	return stdout;
 }
 
 /** Resolve the repository root containing `folder`, or null if not a repo. */
